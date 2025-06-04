@@ -1,23 +1,8 @@
 import { Component, OnInit } from "@angular/core";
-import { Course, sortCoursesBySeqNo } from "../model/course";
-import { interval, noop, Observable, of, throwError, timer } from "rxjs";
-import {
-  catchError,
-  delay,
-  delayWhen,
-  filter,
-  finalize,
-  map,
-  retryWhen,
-  shareReplay,
-  tap,
-} from "rxjs/operators";
-import { HttpClient } from "@angular/common/http";
-import { MatDialog, MatDialogConfig } from "@angular/material/dialog";
-import { CourseDialogComponent } from "../course-dialog/course-dialog.component";
-import { CoursesService } from "../services/courses.service";
-import { LoadingService } from "../loading/loading.service";
-import { MessageService } from "../messages/messages.service";
+import { Course } from "../model/course";
+import { Observable } from "rxjs";
+
+import { CourseStore } from "../services/courses.store";
 
 @Component({
   selector: "home",
@@ -30,36 +15,14 @@ export class HomeComponent implements OnInit {
 
   advancedCourses$: Observable<Course[]>;
 
-  constructor(
-    private courseService: CoursesService,
-    private loadingService: LoadingService,
-    private messageService: MessageService
-  ) {}
+  constructor(private courseStore: CourseStore) {}
 
   ngOnInit() {
     this.onReloadCourse();
   }
 
   onReloadCourse() {
-    const courses$ = this.courseService
-      .loadAllCourses()
-      .pipe(map((courses) => courses.sort(sortCoursesBySeqNo)),
-    catchError(err => {
-      const message = "Could not load courses";
-      this.messageService.showErrors(message)
-      console.log(message, err)
-      return throwError(err)
-    }));
-    const loadCourse$ = this.loadingService.showLoaderUntilComplete(courses$);
-    this.beginnerCourses$ = loadCourse$.pipe(
-      map((courses) =>
-        courses.filter((course) => course.category == "BEGINNER")
-      )
-    );
-    this.advancedCourses$ = loadCourse$.pipe(
-      map((courses) =>
-        courses.filter((course) => course.category == "ADVANCED")
-      )
-    );
+    this.beginnerCourses$ = this.courseStore.filteredCourse("BEGINNER");
+    this.advancedCourses$ = this.courseStore.filteredCourse("ADVANCED");
   }
 }
